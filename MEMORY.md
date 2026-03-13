@@ -30,7 +30,7 @@
 - Writes at https://mastersoftech.substack.com/
 - Model: Leverage Mapping Workshop → Focused Build Sprint (2–4 wks) → Measured Expansion
 - Positioning: "AI leverage for leadership teams" — high-conviction, no hype, operator-focused
-- First meeting with MintHC: 2026-03-12 8:30am, 158 Leinster Road, Merivale, Christchurch
+- MintHC meeting (2026-03-12): 8:30am, 158 Leinster Road, Merivale. Meeting went well. Follow-ups TBD.
 
 ## Companies
 
@@ -50,7 +50,8 @@
 - Notable clients: Christ Church Cathedral, Akaroa Dolphins, Qizzle, Wools of New Zealand
 - Content: Publishes monthly business insights with economist Tony Alexander
 - Social: Facebook, Instagram, LinkedIn (@minthc.nz)
-- Context: Cameron and Matt meeting with Andy (Latent Labs) re: MintHC on 2026-03-12
+- Context: Cameron and Matt met with Andy (Latent Labs) re: MintHC on 2026-03-12 — went well
+- **Nick** — main internal developer (not on public team page, separate from Molly Meates)
 
 ## Cameron's Context
 - Director/founder of Forge Labs in Christchurch, NZ
@@ -115,10 +116,23 @@
 - **Paths:** /home/openclaw/ → /home/node/ everywhere
 - **GitHub 2FA** enabled on forgelabs-sierra. Recovery codes in openclaw-podman/secrets/ (host only)
 - **File zeroing bug fixed** — OpenClaw 2026.3.12 (f486859) — upstream atomic "pinned" write fix synced
-- **Lost:** memory/2026-03-12.md zeroed (unrecoverable). MEMORY.md + TOOLS.md restored from git (b3d5e04)
+- **Lost:** memory/2026-03-12.md was zeroed — rebuilt by Cameron from Telegram screenshots. MEMORY.md + TOOLS.md restored from git (b3d5e04)
 
 ## New Capabilities (2026-03-13)
 - **`flvercel projects create`**: `flvercel projects create my-app --repo forgelabs-sierra/my-app [--framework auto]`
+
+## Workspace Backup (2026-03-13)
+- **Repo:** https://github.com/forgelabs-sierra/openclaw-workspace (private)
+- **Skill:** /workspace/skills/workspace-backup/SKILL.md
+- **Backs up:** MEMORY.md, TOOLS.md, HEARTBEAT.md, skills/, memory/
+- **Secret handling:** GCP OAuth credentials auto-redacted from webdev skill before push
+- **Heartbeat:** wired in — runs every heartbeat cycle
+- **No-op when clean:** skips commit if nothing changed
+
+## GitHub Orgs
+- **forgelabs-nz** — company org (company repos, Matt + Cameron + Sierra collaborate)
+- **forgelabs-sierra** — Sierra's personal account (workspace backup, openclaw-sierra config)
+- **forgelabs-devops** — Cameron's account
 
 ## Forge Labs Website — Branch Workflow
 - **Live site edits** (content, copy, quick fixes to www.forgelabs.nz) → commit directly to `main`, then merge into `feature/cms`

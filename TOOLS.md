@@ -30,7 +30,7 @@ Sierra runs inside a hardened Podman container. This section describes what's av
   - Use `cat` or `read` tool with full `/data/drive-downloads/<filename>` path
   - Files downloaded via `flgog drive download <id>` appear here automatically
 - `/data/browser-screenshots/` — Browser tool screenshots land here (host mount into sandbox, read-only)
-  - Screenshots taken via the browser `screenshot` action are saved by the gateway to `/home/openclaw/.openclaw/media/browser/`
+  - Screenshots taken via the browser `screenshot` action are saved by the gateway to `/home/node/.openclaw/media/browser/`
   - That directory is bind-mounted into the sandbox at `/data/browser-screenshots/`
   - Files are named with UUIDs (e.g., `c603f324-3277-4fcd-8784-cb8a2ecc3d9f.jpg`)
   - The image tool can read screenshots directly from their gateway path — no need to copy them
@@ -63,10 +63,10 @@ Note: Model names here are LiteLLM aliases. The underlying models may be newer v
 - Gateway bound to LAN on port 18789
 
 ### Filesystem
-- Home: /home/openclaw
-- Config: /home/openclaw/.openclaw/
-- Workspace: /home/openclaw/.openclaw/workspace/
-- Memory: /home/openclaw/.openclaw/workspace/memory/
+- Home: /home/node
+- Config: /home/node/.openclaw/
+- Workspace: /home/node/.openclaw/workspace/
+- Memory: /home/node/.openclaw/workspace/memory/
 - System paths not writable (sandbox user, no root) — /tmp writable with exec
 - Workspace and config are persistent (bind-mounted from host)
 
