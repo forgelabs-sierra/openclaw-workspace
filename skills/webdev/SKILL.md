@@ -429,8 +429,8 @@ For the current forgelabs-web project (`sierrawins.test.forgelabs.nz`):
 
 | Var | Value |
 |-----|-------|
-| `AUTH_GOOGLE_ID` | `<redacted — see Vercel env vars>` |
-| `AUTH_GOOGLE_SECRET` | `<redacted — see Vercel env vars>` |
+| `AUTH_GOOGLE_ID` | `<redacted>` |
+| `AUTH_GOOGLE_SECRET` | `<redacted>` |
 | `AUTH_SECRET` | (generated — stored in Vercel) |
 | `GITHUB_OWNER` | `forgelabs-sierra` |
 | `GITHUB_REPO` | `forgelabs-web` |
