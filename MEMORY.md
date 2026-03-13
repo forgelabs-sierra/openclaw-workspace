@@ -160,6 +160,8 @@
 
 ## Technical Gotchas (Sandbox)
 - **Tailwind v4 + arm64 = broken** — oxide native binary won't install, always use Tailwind v3
+- **Next.js versions:** Do NOT hardcode specific versions — use `"next": "latest"` or check npm tags before pinning. **15.2.2 had React2Shell CVE** — fixed in 15.2.3+. Safe versions: >=15.2.3, latest stable 15.x is 15.2.9 / 15.3.9. Current latest: 16.1.6. Always use the latest patch release.
+- **`create-next-app` is interactive** — pass all flags to skip prompts: `npx create-next-app@latest my-app --yes --typescript --tailwind --eslint --app --src-dir --no-import-alias --no-turbopack`. Without these flags, it blocks on interactive prompts that can't be answered from exec.
 - **Screenshots:** use `/data/browser-screenshots/` path (bind-mounted into sandbox) — NOT `/home/node/.openclaw/media/browser/` (outside workspace, image tool will error)
 - **Cloudflare proxy must be OFF** for Vercel custom domains (SSL breaks)
 - **Google Apps Script:** expects FormData.append(), not JSON.stringify()
