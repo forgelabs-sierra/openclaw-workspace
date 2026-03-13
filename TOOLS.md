@@ -67,8 +67,11 @@ Note: Model names here are LiteLLM aliases. The underlying models may be newer v
 - Config: /home/node/.openclaw/
 - Workspace: /home/node/.openclaw/workspace/
 - Memory: /home/node/.openclaw/workspace/memory/
-- System paths not writable (sandbox user, no root) — /tmp writable with exec
+- System paths not writable (sandbox user, no root)
 - Workspace and config are persistent (bind-mounted from host)
+- **File tools (read/write/edit) are restricted to workspace** (`~/.openclaw/workspace/`). Paths outside workspace (including `/tmp`) return "path escapes sandbox root".
+- **Exec tool has full sandbox filesystem access** — use `exec` for `/tmp` operations: `echo "data" > /tmp/file`, `cat /tmp/file`
+- For temp files needed by file tools, use `/workspace/.tmp/` instead of `/tmp`
 
 ### Google Workspace (via flgog)
 

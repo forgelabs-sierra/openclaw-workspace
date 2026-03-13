@@ -160,12 +160,14 @@
 
 ## Technical Gotchas (Sandbox)
 - **Tailwind v4 + arm64 = broken** — oxide native binary won't install, always use Tailwind v3
-- **Screenshots:** cp from /data/browser-screenshots/ to /workspace/ before using image tool; wait 4-5s after navigate
+- **Screenshots:** use `/data/browser-screenshots/` path (bind-mounted into sandbox) — NOT `/home/node/.openclaw/media/browser/` (outside workspace, image tool will error)
 - **Cloudflare proxy must be OFF** for Vercel custom domains (SSL breaks)
 - **Google Apps Script:** expects FormData.append(), not JSON.stringify()
 - **Vercel project creation:** `flvercel projects create my-app --repo forgelabs-sierra/my-app` (idempotent)
 - **Article fetching:** use `curl https://r.jina.ai/<url>` — bypasses bot checks, no browser needed
 - **flgh clone remote URL:** has token baked in after clone — fix with `git remote set-url origin https://github.com/org/repo.git`
+- **Temp files:** file tools (read/write/edit) are workspace-only — use `exec` for `/tmp/` access. For temp files accessible via file tools, use `/workspace/.tmp/`
+- **sessions_spawn:** do NOT use `streamTo: "parent"` — only works with acp runtime, not subagent. Check spawned sessions via sessions_list/sessions_history instead.
 
 ## Timezone
 - All timekeeping is in **Pacific/Auckland (NZDT)** — migrated 2026-03-11
