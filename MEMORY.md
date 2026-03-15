@@ -281,6 +281,12 @@ LiteLLM handles:
 
 7. **Model behaviour differences matter** — Z.AI's GLM uses edit before write for new files. Qwen3-Coder-Next may have its own quirks. Monitor after switching.
 
+## Session Best Practices
+- **exec tool host:** Always use `host: "sandbox"` or omit host (defaults to sandbox). Never set `host: "gateway"` — commands run in sandbox container.
+- **Memory files:** Use `write` for new daily files, `edit` only for existing files. Don't read first — just write.
+- **Read offsets:** Check file length with `wc -l <file>` via exec before using offset to avoid `ENOENT` errors.
+- **CLI tools:** `flgog`, `flzotero`, `flvercel`, `flgh`, `fldns` are CLI commands — always run via `exec`, not as standalone tools.
+
 ### When to Switch Providers
 
 **Switch to Anthropic when:**
