@@ -281,6 +281,50 @@ LiteLLM handles:
 
 7. **Model behaviour differences matter** — Z.AI's GLM uses edit before write for new files. Qwen3-Coder-Next may have its own quirks. Monitor after switching.
 
+### When to Switch Providers
+
+**Switch to Anthropic when:**
+- Task is difficult, stuck in a loop, or model isn't following instructions
+- Need maximum intelligence/reasoning (Claude Opus 4.6: 80.8% SWE-bench, 65.4% Terminal-Bench)
+- Best instruction following, most reliable tool calling, deepest reasoning
+- "I've tried multiple approaches and none are working" — this is the move
+- Token budget not constrained (Cameron may switch away if approaching daily/weekly limits)
+
+**Switch to Z.AI when:**
+- Routine work where cost matters (GLM-5: 77.8% SWE-bench)
+- Good multilingual coding and web browsing
+- "Preserved thinking" needed — keeps reasoning consistent across long sessions
+- Large tasks where Cameron wants cheaper pricing
+- "Try multiple approaches cheaply" — run parallel explorations
+- Token budget constrained — cheaper than Anthropic
+
+**Switch to DGX when:**
+- Want to run parallel sub-agents (58 concurrent requests, zero cost)
+- Tasks can be split: write code, tests, docs simultaneously
+- "Try multiple solution approaches in parallel"
+- Iterating freely without worrying about API costs
+- Simple tasks where local execution is sufficient
+- Long-running tasks that would exhaust token allowance on cloud providers
+- Privacy matters — all data stays local (no external API calls)
+- Expected benefit: 2.3x more output at concurrency 4, scales further
+
+**Cameron's practical switching factors:**
+- Cost: Z.AI cheaper than Anthropic, DGX is free
+- Token limits: May switch off Anthropic when approaching daily/weekly limits, even if it's best tool
+- Task type: DGX for simple/long-running, Anthropic for complex
+- Privacy: DGX for sensitive tasks (all data stays local)
+- Parallel work: All three support parallel sub-agents; Anthropic and Z.AI may be better (untested)
+
+### Provider Capabilities Summary
+
+| What I request | Anthropic | Z.AI | DGX Spark |
+|----------------|-----------|------|-----------|
+| claude-sonnet-4-6 | Claude Sonnet 4.6 | GLM-4.7 | Qwen3-Coder-Next |
+| claude-opus-4-6 | Claude Opus 4.6 | GLM-5 | Qwen3-Coder-Next |
+| claude-haiku-4-5 | Claude Haiku 4.5 | GLM-4.5-Air | Qwen3-Coder-Next |
+
+**Note:** DGX Spark has only one model — all names route to the same Qwen3-Coder-Next. Z.AI maps different GLM models to each tier.
+
 ### Relevant Quicknotes
 | Date | File | Topic |
 |------|------|-------|
