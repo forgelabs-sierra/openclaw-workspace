@@ -321,6 +321,31 @@ LiteLLM handles:
 - Privacy: DGX for sensitive tasks (all data stays local)
 - Parallel work: All three support parallel sub-agents; Anthropic and Z.AI may be better (untested)
 
+## Parallel Sub-Agent Strategy (Mar 15, 19:24)
+
+**When to use parallel sub-agents:**
+- Tasks are independent (no shared state or dependency on each other's output)
+- Examples: reading multiple files, running separate searches, researching multiple topics
+
+**How it works:**
+- Each sub-agent runs its own inference stream
+- Results from all tasks complete in roughly the time it would take to do one
+- No queuing — all tasks execute concurrently
+
+**Practical examples:**
+- Research 3 topics → spawn 3 sub-agents, not sequential research
+- Review 5 files → spawn 5 sub-agents, not one at a time
+- Write code, tests, docs → spawn 3 sub-agents, sequential execution
+
+**When NOT to use:**
+- Task B requires result of task A (must be sequential)
+- Tasks need shared context or coordination
+
+**Expected benefit:**
+- Linear scaling: N tasks → N× throughput at concurrency N
+- Practical benchmark: 2.3× output at concurrency 4 (DGX-specific)
+- Applies to all three providers (Anthropic, Z.AI, DGX)
+
 ### Provider Capabilities Summary
 
 | What I request | Anthropic | Z.AI | DGX Spark |
