@@ -183,3 +183,115 @@
 5. **Context efficiency**: Use coding sandbox for development work to preserve main session
 6. **Email protocol**: Always send from sierra@forgelabs.nz, always CC cameron@forgelabs.nz, always get explicit approval before sending. Skill: /workspace/skills/email/SKILL.md
 7. **Telegram chunking**: Break long messages into short chunks — Telegram cuts off long messages
+
+## Local AI & LiteLLM Integration (2026-03-15)
+
+### The DGX Spark
+The DGX Spark is an NVIDIA GB10 ARM64 machine with 120GB unified VRAM, sitting on the local network at Tailscale IP 100.81.205.107 (hostname: `aitopatom-3d7c`). It's Cameron's self-hosted GPU server for running large language models locally — no API costs, no rate limits, full control.
+
+### Timeline
+
+**March 7** — LiteLLM proxy setup
+Cameron set up the LiteLLM proxy as a credential broker between me (OpenClaw) and Anthropic's API. This was the foundation — I talk to LiteLLM at localhost:4000, and LiteLLM handles upstream auth. Five bugs were found and fixed during initial setup (OOM kills, enterprise-only config, env var routing, model name mismatches, under-resourced Podman machine).
+
+**March 7** — Z.AI provider switching (Claude Code)
+First provider switching was set up for Claude Code (the host tool Cameron uses), not for me. Claude Code's `~/.claude/settings.json` was configured to swap between Anthropic direct and Z.AI (GLM models). Z.AI provides Anthropic-compatible models: `glm-5` (opus-tier), `glm-4.7` (sonnet-tier), `glm-4.5-air` (haiku-tier). Backup configs saved.
+
+**March 9** — Token optimisation research
+Cameron researched using a local model for my heartbeat and cron jobs to reduce Anthropic API token costs. The heartbeat runs hourly (reads HEARTBEAT.md, checks email, runs checklists) and the email cron runs every 10 minutes — these don't need frontier intelligence.
+
+**March 11** — DGX Spark goes online with GLM-4.7 Flash
+The DGX started serving `cyankiwi/GLM-4.7-Flash-AWQ-4bit` via vLLM on port 8000. It was added to LiteLLM as `glm-local-heartbeat` — my heartbeat and cron jobs switched to use this free local model instead of paid Anthropic Haiku. Tool calling was verified working (direct, and through LiteLLM's translation layer).
+
+**Key discovery:** vLLM serves an OpenAI-compatible API (not Anthropic), so LiteLLM uses `openai/` prefix internally — but LiteLLM translates between formats transparently.
+
+**March 11** — GLM session corruption incident
+The GLM-4.7 Flash model generated malformed tool call responses during a heartbeat turn. These corrupt entries got written into my main session JSONL file. The Anthropic API then rejected the entire conversation context because of the malformed entries, making me unresponsive on Telegram. Resolution: truncated the corrupt lines from the session file. **Lesson:** heartbeat and cron were moved to their own isolated sessions so a local model failure can never corrupt the main conversation.
+
+**March 14** — Z.AI integration for OpenClaw via LiteLLM
+The big change. Cameron built transparent provider switching for ME (not just Claude Code). Three separate LiteLLM config files were created — `litellm-config-anthropic.yaml`, `litellm-config-zai.yaml`, and the active `litellm-config.yaml`. A switch script (`scripts/switch-provider.sh`) handles the full shutdown/swap/restart sequence in 6 steps.
+
+**The critical bug:** LiteLLM's BYOK (Bring Your Own Key) feature was passing my OAuth token through to Z.AI (which rejected it). The fix was changing my `apiKey` in `openclaw.json` from `${ANTHROPIC_OAUTH_TOKEN}` to `${ANTHROPIC_API_KEY}` (which equals the LiteLLM master key). LiteLLM then recognises me as a proxy admin and uses the correct per-model API key from its config for upstream auth.
+
+All upstream authentication was moved into LiteLLM config — I only know the master key, LiteLLM handles the rest.
+
+**March 14** — First Z.AI model behaviour difference
+My first memory write of the day failed because the Z.AI GLM model used edit on a file that didn't exist yet (2026-03-14.md). I self-recovered by falling back to write. This is a minor behaviour difference — Claude uses write for new files, GLM tries edit first. One wasted tool call per day, harmless.
+
+**March 14–15** — Qwen3-Coder-Next-FP8 on DGX Spark via sglang
+Cameron set up a much more capable model on the DGX: `Qwen3-Coder-Next-FP8` (80B params, 3B active via MoE, FP8 quantised). This is a hybrid Gated DeltaNet + Attention + MoE architecture — not a standard transformer. It's served by sglang (not vLLM) on port 30000.
+
+**Key specs:**
+- 131K context window (50% of native 256K, balanced against GPU memory)
+- 58 concurrent requests capacity
+- 45 tokens/sec single-request, 141 tokens/sec at concurrency 8
+- Tool calling via `--tool-call-parser qwen3_coder`
+- Triton attention backend (mandatory on Blackwell GPUs)
+- ~5 minute startup (dominated by loading 75GB of model weights)
+
+Speculative decoding (EAGLE3 with Aurora-Spec draft model) was tested but rejected: only 18% speedup, limits concurrency to 1 request, and forces 32K context. Baseline wins for agent workloads.
+
+**March 15** — DGX integrated as third LiteLLM provider
+Cameron created `litellm-config-dgx.yaml` and updated the switch script. Verified the LiteLLM container can reach the DGX over Tailscale. Switched to DGX provider, health check passed (7/7 healthy), end-to-end inference confirmed (`claude-sonnet-4-6` → LiteLLM → sglang → `Qwen3-Coder-Next` → response).
+
+### Current State: Three Providers
+
+```bash
+./scripts/switch-provider.sh anthropic  # Anthropic Claude API (production)
+./scripts/switch-provider.sh zai        # Z.AI GLM models (Anthropic-compatible)
+./scripts/switch-provider.sh dgx        # DGX Spark Qwen3-Coder-Next (self-hosted)
+```
+
+I see the same model names regardless of which backend is active:
+
+| What I request | Anthropic | Z.AI | DGX Spark |
+|----------------|-----------|------|-----------|
+| `claude-sonnet-4-6` | Claude Sonnet 4.6 | GLM-4.7 | Qwen3-Coder-Next-FP8 |
+| `claude-opus-4-6` | Claude Opus 4.6 | GLM-5 | Qwen3-Coder-Next-FP8 |
+| `claude-haiku-4-5` | Claude Haiku 4.5 | GLM-4.5-Air | Qwen3-Coder-Next-FP8 |
+
+**Note:** DGX Spark has only one model — all names route to the same `Qwen3-Coder-Next-FP8`.
+
+### Architecture
+
+Me (OpenClaw) → LiteLLM proxy (localhost:4000) → Provider
+├── Anthropic API (cloud)
+├── Z.AI API (cloud)
+└── DGX Spark sglang (Tailscale, self-hosted)
+
+LiteLLM handles:
+- API format translation (OpenAI ↔ Anthropic)
+- Credential management (I only know the master key)
+- Model name routing (same names, different backends)
+- Health checks, rate limiting, cost tracking
+
+### Key Lessons Learned
+
+1. **LiteLLM BYOK** — If you send a key that isn't the master key, LiteLLM passes it through to the upstream provider (overriding config). Always authenticate with the master key.
+
+2. **Local models can corrupt sessions** — The GLM-4.7 Flash incident showed that local models with different tool call formats can inject malformed data into session files, breaking subsequent API calls. Always use isolated sessions for non-frontier models.
+
+3. **sglang vs vLLM** — sglang is the recommended framework for Qwen3-Coder-Next. vLLM can't do EAGLE3 speculative decoding with this architecture. sglang handles the hybrid GDN model correctly.
+
+4. **Speculative decoding trade-offs** — On the GB10, EAGLE3 gives only 18% speedup but kills concurrency (58 → 1) and halves context (131K → 32K). Baseline is better for agent workloads.
+
+5. **Podman containers CAN reach Tailscale IPs** — The `openclaw-external` bridge network routes to the host's Tailscale interface. No special configuration needed.
+
+6. **podman restart doesn't pick up env changes** — Must `podman rm` + `podman compose up -d` for docker-compose.yml environment changes.
+
+7. **Model behaviour differences matter** — Z.AI's GLM uses edit before write for new files. Qwen3-Coder-Next may have its own quirks. Monitor after switching.
+
+### Relevant Quicknotes
+| Date | File | Topic |
+|------|------|-------|
+| Mar 7 | quicknote_20260307_193017_litellm-setup.md | Initial LiteLLM proxy setup (5 bugs found) |
+| Mar 7 | quicknote_20260307_164200_llm-provider-switching.md | Z.AI/Anthropic switching for Claude Code |
+| Mar 9 | quicknote_20260309_local-llm-heartbeat-token-optimisation.md | Local model for heartbeat research |
+| Mar 11 | quicknote_20260311_150000_dgx-spark-glm-local-model.md | DGX Spark GLM-4.7 Flash setup, tool calling verified |
+| Mar 11 | quicknote_20260311_164500_glm-session-corruption.md | GLM corrupted main session incident |
+| Mar 14 | quicknote_20260314_083822_zai-litellm-model-switching.md | Z.AI switching plan for OpenClaw |
+| Mar 14 | quicknote_20260314_095848_zai-litellm-implementation.md | Z.AI implementation, BYOK bug, validation |
+| Mar 14 | quicknote_20260314_105140_zai-glm-edit-vs-write-behaviour.md | Z.AI model edit vs write behaviour |
+| Mar 14 | quicknote_20260314_221921_openclaw_litellm_integration.md | Qwen3-Coder-Next + OpenClaw + LiteLLM research |
+| Mar 14 | quicknote_20260314_222414_dgx-spark-litellm-provider-integration.md | DGX as third LiteLLM provider plan |
+| Mar 15 | quicknote_20260315_154024_definitive_setup_guide.md | Definitive sglang setup guide (benchmarks, memory, flags) |
